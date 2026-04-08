@@ -1,0 +1,138 @@
+﻿
+> temp-app@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.2 (Turbopack)
+
+  Creating an optimized production build ...
+node.exe : 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Users\DhoDho\AppData\Roaming ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpeci 
+   fied: (:String) [], RemoteExceptio  
+  n
+    + FullyQualifiedErrorId : NativeCo 
+   mmandError
+ 
+> Build error occurred
+Error: Turbopack build failed with 2 
+errors:
+./node_modules/@tensorflow-models/hand-
+pose-detection/dist/hand-pose-detection
+.esm.js:17:1
+Export Hands doesn't exist in target 
+module
+  [90m15 |[0m     * =================
+=======================================
+=====================
+  [90m16 |[0m     */
+[31m[1m>[0m [90m17 |[0m 
+[36mimport[0m{[33mHands[0m 
+[36mas[0m t}[36mfrom[0m[32m"@media
+pipe/hands"[0m;[36mimport[0m{[33mTe
+nsor[0m [36mas[0m e,browser 
+[36mas[0m n,util [36mas[0m i,tidy 
+[36mas[0m...
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m18 |[0m
+
+The export Hands was not found in 
+module [project]/node_modules/@mediapip
+e/hands/hands.js [app-client] 
+(ecmascript).
+The module has no exports at all.
+All exports of the module are 
+statically known (It doesn't have 
+dynamic exports). So it's known 
+statically that the requested export 
+doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/@tensorflow-models/h
+and-pose-detection/dist/hand-pose-detec
+tion.esm.js [Client Component Browser]
+    ./src/components/HandTracker.tsx 
+[Client Component Browser]
+    ./src/components/HandTracker.tsx 
+[Server Component]
+    ./src/app/page.tsx [Server 
+Component]
+
+  Client Component SSR:
+    ./node_modules/@tensorflow-models/h
+and-pose-detection/dist/hand-pose-detec
+tion.esm.js [Client Component SSR]
+    ./src/components/HandTracker.tsx 
+[Client Component SSR]
+    ./src/components/HandTracker.tsx 
+[Server Component]
+    ./src/app/page.tsx [Server 
+Component]
+
+
+./node_modules/@tensorflow-models/hand-
+pose-detection/dist/hand-pose-detection
+.esm.js:17:1
+Export Hands doesn't exist in target 
+module
+  [90m15 |[0m     * =================
+=======================================
+=====================
+  [90m16 |[0m     */
+[31m[1m>[0m [90m17 |[0m 
+[36mimport[0m{[33mHands[0m 
+[36mas[0m t}[36mfrom[0m[32m"@media
+pipe/hands"[0m;[36mimport[0m{[33mTe
+nsor[0m [36mas[0m e,browser 
+[36mas[0m n,util [36mas[0m i,tidy 
+[36mas[0m...
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m18 |[0m
+
+The export Hands was not found in 
+module [project]/node_modules/@mediapip
+e/hands/hands.js [app-ssr] 
+(ecmascript).
+The module has no exports at all.
+All exports of the module are 
+statically known (It doesn't have 
+dynamic exports). So it's known 
+statically that the requested export 
+doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/@tensorflow-models/h
+and-pose-detection/dist/hand-pose-detec
+tion.esm.js [Client Component Browser]
+    ./src/components/HandTracker.tsx 
+[Client Component Browser]
+    ./src/components/HandTracker.tsx 
+[Server Component]
+    ./src/app/page.tsx [Server 
+Component]
+
+  Client Component SSR:
+    ./node_modules/@tensorflow-models/h
+and-pose-detection/dist/hand-pose-detec
+tion.esm.js [Client Component SSR]
+    ./src/components/HandTracker.tsx 
+[Client Component SSR]
+    ./src/components/HandTracker.tsx 
+[Server Component]
+    ./src/app/page.tsx [Server 
+Component]
+
+
+    at ./node_modules/ (tensorflow-mode
+ls/hand-pose-detection/dist/hand-pose-d
+etection.esm.js:17:1)
+    at ./node_modules/ (tensorflow-mode
+ls/hand-pose-detection/dist/hand-pose-d
+etection.esm.js:17:1)

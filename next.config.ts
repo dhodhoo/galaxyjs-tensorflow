@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ['@tensorflow-models/hand-pose-detection', '@mediapipe/hands'],
 };
 
 export default nextConfig;
