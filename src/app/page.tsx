@@ -20,7 +20,7 @@ export default function Home() {
       
       {/* Fallback info for permission */}
       <div className="absolute bottom-4 left-4 text-xs text-white/50 z-50">
-        Open palm to steer, pinch to form a ring, and close your fist to compress the galaxy.
+        Drag to orbit the camera, use open palm to widen the accretion disk, and close your fist to collapse it inward.
       </div>
     </main>
   );

@@ -11,7 +11,7 @@ const vertexShader = `
   void main() {
     vColor = color;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = size * (300.0 / -mvPosition.z);
+    gl_PointSize = size * (320.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -22,8 +22,8 @@ const fragmentShader = `
     float d = distance(gl_PointCoord, vec2(0.5));
     if (d > 0.5) discard;
 
-    float alpha = 1.0 - smoothstep(0.08, 0.5, d);
-    gl_FragColor = vec4(vColor, alpha);
+    float glow = 1.0 - smoothstep(0.02, 0.5, d);
+    gl_FragColor = vec4(vColor, glow);
   }
 `;
 
@@ -54,30 +54,32 @@ function generateShape(mode: GalaxyMode, count: number): Float32Array {
       y = radius * Math.sin(phi) * Math.sin(theta) * 0.42;
       z = radius * Math.cos(phi) * 1.1;
     } else if (mode === 'spiral') {
-      const bands = 3;
-      const radius = 8 + Math.pow(randomFromIndex(particleId, 21), 0.82) * 20;
-      const orbitAngle = randomFromIndex(particleId, 22) * Math.PI * 2;
-      const bandOffset = ((i % bands) - 1) * 0.9;
-      const wave = Math.sin(orbitAngle * 2 + radius * 0.45) * 1.3;
-      const drift = (randomFromIndex(particleId, 23) - 0.5) * (1.8 + radius * 0.09);
-
-      x = Math.cos(orbitAngle) * (radius + bandOffset + wave);
-      y = (randomFromIndex(particleId, 24) - 0.5) * (0.22 + radius * 0.012);
-      z = Math.sin(orbitAngle) * (radius + bandOffset) + drift;
+      const seedA = randomFromIndex(particleId, 11);
+      const seedB = randomFromIndex(particleId, 12);
+      const seedC = randomFromIndex(particleId, 13);
+      let angle = seedA * Math.PI * 2;
+      const radius = 6 + Math.pow(seedB, 1.2) * 26;
+      angle += radius * 0.48 + Math.sin(radius * 0.22 + seedC * 4) * 0.65;
+      const thickness = (seedC - 0.5) * (0.32 + radius * 0.032);
+      const turbulence = (randomFromIndex(particleId, 15) - 0.5) * (1 + radius * 0.06);
+      const radialOffset = turbulence * 0.45;
+      x = Math.cos(angle) * (radius + radialOffset);
+      y = thickness;
+      z = Math.sin(angle) * (radius - radialOffset * 0.4);
     } else if (mode === 'ring') {
-      const angle = randomFromIndex(particleId, 31) * Math.PI * 2;
-      const bandMix = randomFromIndex(particleId, 32);
-      const radius =
-        bandMix < 0.42
-          ? 9.8 + bandMix * 7
-          : bandMix < 0.72
-            ? 14.8 + (bandMix - 0.42) * 14
-            : 20 + (bandMix - 0.72) * 18;
-
-      x = Math.cos(angle) * radius + (randomFromIndex(particleId, 33) - 0.5) * 0.75;
-      y = (randomFromIndex(particleId, 34) - 0.5) * 0.18;
-      z = Math.sin(angle) * radius + (randomFromIndex(particleId, 35) - 0.5) * 0.75;
-    } else if (mode === 'exploded') {
+      const seedA = randomFromIndex(particleId, 11);
+      const seedB = randomFromIndex(particleId, 12);
+      const seedC = randomFromIndex(particleId, 13);
+      let angle = seedA * Math.PI * 2;
+      const radius = 11.5 + (seedB - 0.5) * 4.4;
+      angle += Math.sin(seedC * Math.PI * 2) * 0.2;
+      const thickness = (seedC - 0.5) * 0.28;
+      const turbulence = (randomFromIndex(particleId, 16) - 0.5) * 0.35;
+      const radialOffset = turbulence * 0.45;
+      x = Math.cos(angle) * (radius + radialOffset);
+      y = thickness;
+      z = Math.sin(angle) * (radius - radialOffset * 0.4);
+    } else {
       const theta = randomFromIndex(particleId, 41) * Math.PI * 2;
       const phi = Math.acos(2 * randomFromIndex(particleId, 42) - 1);
       const radius = 24 + Math.pow(randomFromIndex(particleId, 43), 0.72) * 78;
@@ -101,11 +103,15 @@ export default function GalaxyParticles() {
   const pointsRef = useRef<THREE.Points>(null);
   const groupRef = useRef<THREE.Group>(null);
   const coreRef = useRef<THREE.Mesh>(null);
-  const haloRef = useRef<THREE.Mesh>(null);
-  const atmosphereRef = useRef<THREE.Mesh>(null);
+  const photonRingRef = useRef<THREE.Mesh>(null);
+  const diskRef = useRef<THREE.Mesh>(null);
+  const outerDiskRef = useRef<THREE.Mesh>(null);
+  const auraRef = useRef<THREE.Mesh>(null);
   const coreMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
-  const haloMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-  const atmosphereMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const photonRingMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const diskMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const outerDiskMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const auraMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const previousModeRef = useRef<GalaxyMode>('spiral');
   const burstPulseRef = useRef(0);
 
@@ -118,22 +124,23 @@ export default function GalaxyParticles() {
     const colors = new Float32Array(particleCount * 3);
     const sizes = new Float32Array(particleCount);
 
-    const colorCore = new THREE.Color('#f4e9cc');
-    const colorMid = new THREE.Color('#c9d8f0');
-    const colorEdge = new THREE.Color('#7ea7df');
+    const colorCore = new THREE.Color('#fff3d1');
+    const colorHot = new THREE.Color('#ff9a3d');
+    const colorEdge = new THREE.Color('#5dc7ff');
 
     for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
-      const ratio = randomFromIndex(i + 1, 51);
+      const heatMix = randomFromIndex(i + 1, 51);
+      const outerMix = randomFromIndex(i + 1, 52);
       const mixedColor =
-        ratio < 0.62
-          ? colorCore.clone().lerp(colorMid, ratio / 0.62)
-          : colorMid.clone().lerp(colorEdge, (ratio - 0.62) / 0.38);
+        heatMix < 0.7
+          ? colorCore.clone().lerp(colorHot, heatMix / 0.7)
+          : colorHot.clone().lerp(colorEdge, (heatMix - 0.7) / 0.3);
 
       colors[i3] = mixedColor.r;
       colors[i3 + 1] = mixedColor.g;
       colors[i3 + 2] = mixedColor.b;
-      sizes[i] = 0.25 + randomFromIndex(i + 1, 52) * 1.6;
+      sizes[i] = 0.45 + outerMix * 1.8;
     }
 
     return {
@@ -145,11 +152,27 @@ export default function GalaxyParticles() {
   }, [particleCount]);
 
   useFrame((_, delta) => {
-    if (!pointsRef.current || !groupRef.current || !coreRef.current || !haloRef.current || !atmosphereRef.current) {
+    if (
+      !pointsRef.current ||
+      !groupRef.current ||
+      !coreRef.current ||
+      !photonRingRef.current ||
+      !diskRef.current ||
+      !outerDiskRef.current ||
+      !auraRef.current
+    ) {
       return;
     }
 
-    const { speed, targetRotation, targetZoom, targetOffset, mode, pinchStrength, isRotationPaused } = useGalaxyStore.getState();
+    const {
+      speed,
+      targetRotation,
+      targetZoom,
+      targetOffset,
+      mode,
+      pinchStrength,
+      isRotationPaused,
+    } = useGalaxyStore.getState();
     const safeRotation: [number, number, number] = [
       finiteOr(targetRotation[0], 0),
       finiteOr(targetRotation[1], 0),
@@ -162,7 +185,11 @@ export default function GalaxyParticles() {
     ];
     const safeZoom = THREE.MathUtils.clamp(finiteOr(targetZoom, 50), 35, 90);
     const safePinch = THREE.MathUtils.clamp(finiteOr(pinchStrength, 0), 0, 1);
-    const saturnTilt = mode === 'ring' ? 0.72 : mode === 'compact' ? 0.42 : 0.58;
+    const diskTilt =
+      mode === 'compact' ? 0.42 :
+      mode === 'ring' ? 1.16 :
+      mode === 'exploded' ? 0.58 :
+      1.08;
 
     if (mode !== previousModeRef.current) {
       if (mode === 'exploded') {
@@ -174,94 +201,119 @@ export default function GalaxyParticles() {
     burstPulseRef.current = Math.max(0, burstPulseRef.current - delta * 1.7);
     const burstScale = 1 + burstPulseRef.current * 0.3;
 
-    pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, saturnTilt, delta * 2.5);
+    pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, diskTilt, delta * 2.2);
     if (!isRotationPaused) {
-      pointsRef.current.rotation.y += delta * (0.18 + safePinch * 0.24) * speed;
+      pointsRef.current.rotation.y += delta * (0.22 + safePinch * 0.28) * speed;
       pointsRef.current.rotation.z += delta * 0.03 * speed;
     }
 
     groupRef.current.rotation.x += (safeRotation[0] - groupRef.current.rotation.x) * delta * 7;
     groupRef.current.rotation.y += (safeRotation[1] - groupRef.current.rotation.y) * delta * 7;
-    groupRef.current.rotation.z += (safeRotation[2] - groupRef.current.rotation.z) * delta * 5;
+    groupRef.current.rotation.z += (safeRotation[2] - groupRef.current.rotation.z) * delta * 4.5;
 
     groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, safeOffset[0], delta * 4.6);
     groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, safeOffset[1], delta * 4.6);
-    groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, safeOffset[2], delta * 3.2);
+    groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, safeOffset[2], delta * 3.1);
 
     const scaleFactor = safeZoom / 50;
-    groupRef.current.scale.set(
-      THREE.MathUtils.lerp(groupRef.current.scale.x, scaleFactor * burstScale, delta * 2),
-      THREE.MathUtils.lerp(groupRef.current.scale.y, scaleFactor * burstScale, delta * 2),
-      THREE.MathUtils.lerp(groupRef.current.scale.z, scaleFactor * burstScale, delta * 2),
+    groupRef.current.scale.setScalar(
+      THREE.MathUtils.lerp(groupRef.current.scale.x, scaleFactor * burstScale, delta * 2.2),
     );
 
     const coreScaleTarget =
-      mode === 'compact' ? 3.35 :
-      mode === 'exploded' ? 2.55 :
-      mode === 'ring' ? 2.7 :
-      2.95;
-    const haloScaleTarget =
-      mode === 'compact' ? 4.9 :
-      mode === 'exploded' ? 4.3 :
-      mode === 'ring' ? 4.2 :
-      4.4;
+      mode === 'compact' ? 3.95 :
+      mode === 'ring' ? 3.05 :
+      mode === 'exploded' ? 3.15 :
+      3.35;
+    const photonRingScaleTarget =
+      mode === 'compact' ? 4.25 :
+      mode === 'ring' ? 5.2 :
+      mode === 'exploded' ? 3.85 :
+      4.75;
+    const diskScaleTarget =
+      mode === 'compact' ? 3.95 :
+      mode === 'ring' ? 4.85 :
+      mode === 'exploded' ? 3.45 :
+      5.35;
+    const outerDiskScaleTarget = diskScaleTarget * 1.22;
+    const auraScaleTarget =
+      mode === 'exploded' ? 3.2 :
+      mode === 'compact' ? 3.9 :
+      4.9;
 
-    const nextCoreScale = THREE.MathUtils.lerp(coreRef.current.scale.x, coreScaleTarget, delta * 4.2);
-    const nextHaloScale = THREE.MathUtils.lerp(haloRef.current.scale.x, haloScaleTarget, delta * 3.6);
-    const nextAtmosphereScale = THREE.MathUtils.lerp(atmosphereRef.current.scale.x, coreScaleTarget * 1.1, delta * 4);
+    const nextCoreScale = THREE.MathUtils.lerp(coreRef.current.scale.x, coreScaleTarget, delta * 4);
+    const nextPhotonRingScale = THREE.MathUtils.lerp(photonRingRef.current.scale.x, photonRingScaleTarget, delta * 3.3);
+    const nextDiskScale = THREE.MathUtils.lerp(diskRef.current.scale.x, diskScaleTarget, delta * 3.1);
+    const nextOuterDiskScale = THREE.MathUtils.lerp(outerDiskRef.current.scale.x, outerDiskScaleTarget, delta * 2.6);
+    const nextAuraScale = THREE.MathUtils.lerp(auraRef.current.scale.x, auraScaleTarget, delta * 3.4);
 
-    coreRef.current.scale.set(nextCoreScale * 1.22, nextCoreScale * 0.98, nextCoreScale * 1.22);
-    haloRef.current.scale.set(nextHaloScale, nextHaloScale * 0.78, nextHaloScale);
-    atmosphereRef.current.scale.set(nextAtmosphereScale * 1.28, nextAtmosphereScale, nextAtmosphereScale * 1.28);
-    coreRef.current.rotation.y += delta * 0.18;
-    haloRef.current.rotation.y -= delta * 0.08;
-    atmosphereRef.current.rotation.y += delta * 0.06;
+    coreRef.current.scale.setScalar(nextCoreScale);
+    photonRingRef.current.scale.set(nextPhotonRingScale, nextPhotonRingScale, nextPhotonRingScale);
+    diskRef.current.scale.set(nextDiskScale, nextDiskScale * 0.78, nextDiskScale);
+    outerDiskRef.current.scale.set(nextOuterDiskScale, nextOuterDiskScale, nextOuterDiskScale);
+    auraRef.current.scale.set(nextAuraScale * 1.1, nextAuraScale, nextAuraScale * 1.1);
+
+    if (!isRotationPaused) {
+      photonRingRef.current.rotation.z += delta * 0.14;
+      diskRef.current.rotation.z += delta * 0.22 * speed;
+      outerDiskRef.current.rotation.z -= delta * 0.08 * speed;
+      auraRef.current.rotation.y += delta * 0.05;
+    }
 
     if (coreMaterialRef.current) {
-      const coreOpacityTarget = mode === 'exploded' ? 0.97 : 0.92;
-      coreMaterialRef.current.opacity = THREE.MathUtils.lerp(coreMaterialRef.current.opacity, coreOpacityTarget, delta * 3.5);
-      coreMaterialRef.current.emissive.lerp(
-        mode === 'compact'
-          ? new THREE.Color('#0d1624')
-          : mode === 'ring'
-            ? new THREE.Color('#13243a')
-            : mode === 'exploded'
-              ? new THREE.Color('#1f2c45')
-              : new THREE.Color('#101b2e'),
+      coreMaterialRef.current.emissive.lerp(new THREE.Color('#010204'), delta * 2.2);
+    }
+
+    if (photonRingMaterialRef.current) {
+      const photonRingOpacityTarget =
+        mode === 'ring' ? 0.95 :
+        mode === 'compact' ? 0.7 :
+        0.82 + burstPulseRef.current * 0.08;
+      photonRingMaterialRef.current.opacity = THREE.MathUtils.lerp(
+        photonRingMaterialRef.current.opacity,
+        photonRingOpacityTarget,
+        delta * 3,
+      );
+    }
+
+    if (diskMaterialRef.current) {
+      const diskOpacityTarget =
+        mode === 'compact' ? 0.2 :
+        mode === 'exploded' ? 0.12 :
+        mode === 'ring' ? 0.48 :
+        0.34;
+      diskMaterialRef.current.opacity = THREE.MathUtils.lerp(diskMaterialRef.current.opacity, diskOpacityTarget, delta * 3);
+      diskMaterialRef.current.color.lerp(
+        mode === 'ring' ? new THREE.Color('#2a3038') : new THREE.Color('#1c2027'),
+        delta * 2.5,
+      );
+    }
+
+    if (outerDiskMaterialRef.current) {
+      const outerOpacityTarget =
+        mode === 'exploded' ? 0.12 + burstPulseRef.current * 0.18 :
+        mode === 'compact' ? 0.1 :
+        0.18;
+      outerDiskMaterialRef.current.opacity = THREE.MathUtils.lerp(
+        outerDiskMaterialRef.current.opacity,
+        outerOpacityTarget,
         delta * 2.8,
       );
     }
 
-    if (haloMaterialRef.current) {
-      const haloOpacityTarget =
-        mode === 'exploded' ? 0.35 + burstPulseRef.current * 0.25 :
-        mode === 'compact' ? 0.32 :
-        0.26;
-      haloMaterialRef.current.opacity = THREE.MathUtils.lerp(
-        haloMaterialRef.current.opacity,
-        haloOpacityTarget,
-        delta * 3,
-      );
-    }
-
-    if (atmosphereMaterialRef.current) {
-      const atmosphereOpacityTarget =
+    if (auraMaterialRef.current) {
+      const auraOpacityTarget =
         mode === 'compact' ? 0.18 :
         mode === 'exploded' ? 0.24 :
-        mode === 'ring' ? 0.22 :
-        0.2;
-      atmosphereMaterialRef.current.opacity = THREE.MathUtils.lerp(
-        atmosphereMaterialRef.current.opacity,
-        atmosphereOpacityTarget,
-        delta * 3,
-      );
+        0.24;
+      auraMaterialRef.current.opacity = THREE.MathUtils.lerp(auraMaterialRef.current.opacity, auraOpacityTarget, delta * 3);
     }
 
     const geometry = pointsRef.current.geometry as THREE.BufferGeometry;
     const positionsAttribute = geometry.attributes.position;
     const currentPos = positionsAttribute.array as Float32Array;
     const targetPos = positionsMap[mode];
-    const lerpFactor = Math.min(delta * 5, 1.0);
+    const lerpFactor = Math.min(delta * 4.8, 1);
 
     let needsUpdate = false;
     for (let i = 0; i < currentPos.length; i++) {
@@ -279,59 +331,74 @@ export default function GalaxyParticles() {
 
   return (
     <group ref={groupRef}>
-      <mesh ref={haloRef}>
+      <mesh ref={auraRef}>
         <sphereGeometry args={[1, 48, 48]} />
         <meshBasicMaterial
-          ref={haloMaterialRef}
-          color="#7fb7ff"
+          ref={auraMaterialRef}
+          color="#15191f"
           transparent
-          opacity={0.28}
+          opacity={0.24}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh ref={outerDiskRef} rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[2.1, 3.85, 128]} />
+        <meshBasicMaterial
+          ref={outerDiskMaterialRef}
+          color="#242a33"
+          side={THREE.DoubleSide}
+          transparent
+          opacity={0.18}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh ref={diskRef} rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[1.75, 3.1, 128]} />
+        <meshBasicMaterial
+          ref={diskMaterialRef}
+          color="#1c2027"
+          side={THREE.DoubleSide}
+          transparent
+          opacity={0.34}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh ref={photonRingRef} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[1.9, 0.16, 24, 160]} />
+        <meshBasicMaterial
+          ref={photonRingMaterialRef}
+          color="#3a404a"
+          transparent
+          opacity={0.82}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           toneMapped={false}
         />
       </mesh>
       <mesh ref={coreRef}>
-        <sphereGeometry args={[1, 64, 64]} />
+        <sphereGeometry args={[2.2, 64, 64]} />
         <meshStandardMaterial
           ref={coreMaterialRef}
-          color="#030509"
-          transparent
-          opacity={0.92}
-          depthWrite={false}
-          roughness={0.92}
-          metalness={0.04}
-          emissive="#111a29"
-          emissiveIntensity={0.65}
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh ref={atmosphereRef}>
-        <sphereGeometry args={[1, 48, 48]} />
-        <meshBasicMaterial
-          ref={atmosphereMaterialRef}
-          color="#6f8fbf"
-          transparent
-          opacity={0.2}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          toneMapped={false}
+          color="#05070a"
+          roughness={0.58}
+          metalness={0.1}
+          emissive="#010204"
+          emissiveIntensity={0.08}
+          depthWrite
+          depthTest
         />
       </mesh>
       <points ref={pointsRef}>
         <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[initialPositions, 3]}
-          />
-          <bufferAttribute
-            attach="attributes-color"
-            args={[colors, 3]}
-          />
-          <bufferAttribute
-            attach="attributes-size"
-            args={[sizes, 1]}
-          />
+          <bufferAttribute attach="attributes-position" args={[initialPositions, 3]} />
+          <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+          <bufferAttribute attach="attributes-size" args={[sizes, 1]} />
         </bufferGeometry>
         <shaderMaterial
           vertexShader={vertexShader}

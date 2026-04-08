@@ -3,6 +3,12 @@
 import { GalaxyMode, useGalaxyStore } from '../store/useGalaxyStore';
 
 const galaxyModes: GalaxyMode[] = ['compact', 'spiral', 'ring', 'exploded'];
+const modeLabels: Record<GalaxyMode, string> = {
+  compact: 'Collapsed',
+  spiral: 'Accretion',
+  ring: 'Photon Ring',
+  exploded: 'Debris Field',
+};
 
 export default function UIOverlay() {
   const speed = useGalaxyStore((state) => state.speed);
@@ -25,14 +31,14 @@ export default function UIOverlay() {
     <div className="absolute right-0 top-0 bottom-0 w-80 p-6 flex flex-col justify-between z-40 bg-black/40 backdrop-blur-md border-l border-white/10 text-white font-mono text-sm">
       
       <div>
-        <h1 className="text-2xl font-bold mb-1 text-blue-400">GALAXY SIM</h1>
-        <p className="text-xs text-slate-400 mb-8 border-b border-white/10 pb-4">Gesture-Controlled Particle Engine</p>
+        <h1 className="text-2xl font-bold mb-1 text-amber-300">BLACK HOLE LAB</h1>
+        <p className="text-xs text-slate-400 mb-8 border-b border-white/10 pb-4">Gesture-Controlled Accretion Field</p>
 
         <div className="space-y-6">
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-slate-300">Simulation Speed</span>
-              <span className="text-blue-400">{speed.toFixed(1)}x</span>
+              <span className="text-amber-300">{speed.toFixed(1)}x</span>
             </div>
             <input 
               type="range" 
@@ -63,7 +69,7 @@ export default function UIOverlay() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-slate-300">Bloom Intensity</span>
-              <span className="text-blue-400">{bloomIntensity.toFixed(1)}</span>
+              <span className="text-amber-300">{bloomIntensity.toFixed(1)}</span>
             </div>
             <input 
               type="range" 
@@ -76,17 +82,17 @@ export default function UIOverlay() {
 
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-slate-300">Galaxy Mode</span>
-              <span className="text-blue-400 uppercase">{mode}</span>
+              <span className="text-slate-300">Field State</span>
+              <span className="text-amber-300 uppercase">{modeLabels[mode]}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-2">
               {galaxyModes.map((m) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className={`py-2 text-xs border uppercase tracking-wider transition-colors ${mode === m ? 'border-blue-500 bg-blue-500/20 text-blue-200' : 'border-white/10 hover:bg-white/5'}`}
+                  className={`py-2 text-xs border uppercase tracking-wider transition-colors ${mode === m ? 'border-amber-400/70 bg-amber-400/15 text-amber-100' : 'border-white/10 hover:bg-white/5'}`}
                 >
-                  {m}
+                  {modeLabels[m]}
                 </button>
               ))}
             </div>
@@ -94,9 +100,9 @@ export default function UIOverlay() {
 
           <div className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-4">
             <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Gesture Mapping</div>
-            <div className="text-xs text-slate-300">Open palm starts at spiral, and after compact it opens into exploded.</div>
-            <div className="text-xs text-slate-300">Closed fist always returns the galaxy to compact.</div>
-            <div className="text-xs text-slate-300">The OK hand sign switches to ring, then open palm returns it to spiral.</div>
+            <div className="text-xs text-slate-300">Open palm stabilizes the accretion disk, and after collapse it releases the debris field.</div>
+            <div className="text-xs text-slate-300">Closed fist compresses everything back toward the event horizon.</div>
+            <div className="text-xs text-slate-300">The OK hand sign sharpens the photon ring, then open palm returns it to the wider disk.</div>
           </div>
         </div>
       </div>
@@ -104,7 +110,7 @@ export default function UIOverlay() {
       <div className="space-y-4 pt-6 border-t border-white/10">
         <div className="flex items-center justify-between">
           <span className="text-slate-300">Particle Count</span>
-          <span className="text-blue-400 font-bold">{particleCount.toLocaleString('en-US')}</span>
+          <span className="text-amber-300 font-bold">{particleCount.toLocaleString('en-US')}</span>
         </div>
 
         <div className="bg-black/50 p-4 rounded-lg border border-white/5">
@@ -144,7 +150,7 @@ export default function UIOverlay() {
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full rounded-full bg-blue-400 transition-[width] duration-150"
+                className="h-full rounded-full bg-amber-300 transition-[width] duration-150"
                 style={{ width: `${Math.round(pinchStrength * 100)}%` }}
               />
             </div>

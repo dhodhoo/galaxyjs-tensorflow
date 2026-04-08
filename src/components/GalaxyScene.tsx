@@ -1,5 +1,6 @@
 'use client';
 
+import { OrbitControls } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import GalaxyParticles from './GalaxyParticles';
@@ -15,12 +16,21 @@ export default function GalaxyScene() {
         dpr={[1, 2]} // Optimize pixel ratio
       >
         <color attach="background" args={['#000000']} />
-        
-        <ambientLight intensity={0.3} />
-        <directionalLight position={[18, 14, 12]} intensity={1.35} color="#c9d9ff" />
-        <directionalLight position={[-12, -6, -10]} intensity={0.45} color="#3d5c8c" />
-        
+        <fog attach="fog" args={['#020409', 65, 160]} />
+
+        <ambientLight intensity={0.22} />
+        <directionalLight position={[18, 14, 12]} intensity={1.2} color="#ffe0b3" />
+        <directionalLight position={[-12, -6, -10]} intensity={0.4} color="#4a7bb8" />
+        <pointLight position={[0, 0, 0]} intensity={18} distance={90} color="#ff8e3c" />
+        <pointLight position={[0, 8, 0]} intensity={8} distance={70} color="#5dc7ff" />
+
         <GalaxyParticles />
+
+        <OrbitControls
+          enableDamping
+          enablePan={false}
+          target={[0, 0, 0]}
+        />
 
         <EffectComposer>
           <Bloom
