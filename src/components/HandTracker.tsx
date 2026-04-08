@@ -3,12 +3,18 @@
 import { useEffect, useRef } from 'react';
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-webgl';
-import * as handPoseDetection from '@tensorflow-models/hand-pose-detection';
+import type {
+  HandDetector,
+  Keypoint,
+  MediaPipeHandsMediaPipeModelConfig,
+  MediaPipeHandsTfjsModelConfig,
+} from '@tensorflow-models/hand-pose-detection';
 import { GestureState, useGalaxyStore } from '../store/useGalaxyStore';
 import { classifyGesture, getHandBoundsCenter, getHandCenter, getHandOpenness, getPinchStrength, lerp, safeNumber } from '../lib/gestureUtils';
 
 const CAMERA_WIDTH = 640;
 const CAMERA_HEIGHT = 480;
+type HandPoseDetectionModule = typeof import('@tensorflow-models/hand-pose-detection');
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -37,7 +43,8 @@ export default function HandTracker() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | undefined>(undefined);
-  const detectorRef = useRef<handPoseDetection.HandDetector | null>(null);
+  const detectorRef = useRef<HandDetector | null>(null);
+  const handPoseDetectionRef = useRef<HandPoseDetectionModule | null>(null);
   const smoothedInputRef = useRef({
     x: 0,
     y: 0,
@@ -61,7 +68,7 @@ export default function HandTracker() {
     const overlayCanvas = canvasRef.current;
 
     function drawDebugOverlay(
-      keypoints: handPoseDetection.Keypoint[] = [],
+      keypoints: Keypoint[] = [],
       center?: { x: number; y: number },
     ) {
       if (!overlayCanvas) return;
@@ -115,9 +122,16 @@ export default function HandTracker() {
     }
 
     async function initDetector() {
+      if (!handPoseDetectionRef.current) {
+        handPoseDetectionRef.current = await import(
+          '@tensorflow-models/hand-pose-detection/dist/index.js'
+        ) as HandPoseDetectionModule;
+      }
+
+      const handPoseDetection = handPoseDetectionRef.current;
       const model = handPoseDetection.SupportedModels.MediaPipeHands;
       try {
-        const detectorConfig: handPoseDetection.MediaPipeHandsMediaPipeModelConfig = {
+        const detectorConfig: MediaPipeHandsMediaPipeModelConfig = {
           runtime: 'mediapipe',
           modelType: 'full',
           maxHands: 1,
@@ -132,7 +146,7 @@ export default function HandTracker() {
           await tf.setBackend('webgl');
         }
 
-        const detectorConfig: handPoseDetection.MediaPipeHandsTfjsModelConfig = {
+        const detectorConfig: MediaPipeHandsTfjsModelConfig = {
           runtime: 'tfjs',
           modelType: 'full',
           maxHands: 1,
